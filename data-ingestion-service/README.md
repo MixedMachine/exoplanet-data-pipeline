@@ -7,3 +7,10 @@ Pulls exoplanet data from NASA's API and stores it in raw form in MongoDB. Once 
 
 ### Language
 Go
+
+## Todo
+- [ ] Add mongodb functionality
+- [ ] Add NATS functionality
+- [ ] Add Dockerfile
+- [ ] Add Kubernetes deployment files
+- [ ] Add Helm chart
