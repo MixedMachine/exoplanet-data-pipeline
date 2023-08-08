@@ -1,0 +1,21 @@
+version: '3.8'
+services:
+  mongodb:
+    image: mongo:6.0
+    container_name: mongodb
+    restart: on-failure
+    ports:
+      - 27017:27017
+    volumes:
+      - ../data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+  nats:
+    image: nats:2.9
+    container_name: nats
+    restart: on-failure
+    ports:
+      - 4222:4222
+      - 8222:8222
+      - 6222:6222
