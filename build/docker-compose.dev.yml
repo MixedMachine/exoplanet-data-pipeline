@@ -3,6 +3,7 @@ services:
   mongodb:
     image: mongo:6.0
     container_name: mongodb
+    hostname: mongo
     restart: on-failure
     ports:
       - 27017:27017
@@ -11,6 +12,20 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: root
+    networks:
+      - mongo
+  mongo-express:
+    image: mongo-express
+    container_name: mongo-express
+    restart: unless-stopped
+    ports:
+      - 8081:8081
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://root:root@mongodb:27017/
+    networks:
+      - mongo
+    depends_on:
+      - mongodb
   nats:
     image: nats:2.9
     container_name: nats
@@ -19,3 +34,7 @@ services:
       - 4222:4222
       - 8222:8222
       - 6222:6222
+
+networks:
+  mongo:
+    driver: bridge 
