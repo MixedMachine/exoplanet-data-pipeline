@@ -34,6 +34,16 @@ func (q *QueryBuilder) AddWhereParameter(field, operator, value string) *QueryBu
 	return q
 }
 
+func (q *QueryBuilder) AddAndWhereParameter(field, operator, value string) *QueryBuilder {
+	q.query += fmt.Sprintf("+and+%s+%s+'%s'", field, operator, value)
+	return q
+}
+
+func (q *QueryBuilder) AddOrWhereParameter(field, operator, value string) *QueryBuilder {
+	q.query += fmt.Sprintf("+or+%s+%s+'%s'", field, operator, value)
+	return q
+}
+
 func (q *QueryBuilder) AddFormat(formatClause string) *QueryBuilder {
 	q.query += "&format=" + formatClause
 	return q

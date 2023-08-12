@@ -1,7 +1,7 @@
 package api
 
 import (
-	"github.com/mixedmachine/exoplanet-data-pipeline/data-ingestion-service/src/internal/models"
+	// "github.com/mixedmachine/exoplanet-data-pipeline/data-ingestion-service/src/internal/models"
 
 	"encoding/json"
 	"io"
@@ -37,7 +37,7 @@ func extractBody(resp *http.Response) ([]byte, error) {
 	return body, nil
 }
 
-func decodeJSON(body []byte, data *[]models.Exoplanet) error {
+func decodeJSON(body []byte, data *[]map[string]any) error {
 	err := json.Unmarshal(body, data)
 	if err != nil {
 		log.Errorf("Error decoding JSON: %v", err)
@@ -47,8 +47,8 @@ func decodeJSON(body []byte, data *[]models.Exoplanet) error {
 	return nil
 }
 
-func (e *ExoplanetArchive) GetExoplanets(query string) (*[]models.Exoplanet, error) {
-	data := new([]models.Exoplanet)
+func (e *ExoplanetArchive) GetExoplanets(query string) (*[]map[string]any, error) {
+	data := new([]map[string]any)
 
 	resp, err := e.apiClient.Get(e.baseUrl + query)
 	if err != nil {
@@ -63,6 +63,8 @@ func (e *ExoplanetArchive) GetExoplanets(query string) (*[]models.Exoplanet, err
 		log.Errorf("Error extracting body: %v", err)
 		return nil, err
 	}
+
+	// println(string(body))
 
 	err = decodeJSON(body, data)
 	if err != nil {

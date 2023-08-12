@@ -37,6 +37,20 @@ func TestQueryBuilder(t *testing.T) {
 		q.ResetQuery()
 	})
 
+	// Test AddAndWhereParameter method
+	t.Run("Test AddAndWhereParameter", func(t *testing.T) {
+		q.AddSelect("name, age").AddFrom("users").AddWhere().AddWhereParameter("age", ">", "30").AddAndWhereParameter("name", "=", "John")
+		assert.Equal(t, "?query=select+name, age+from+users+where+age+>+'30'+and+name+=+'John'", q.GetQuery())
+		q.ResetQuery()
+	})
+
+	// Test AddOrWhereParameter method
+	t.Run("Test AddOrWhereParameter", func(t *testing.T) {
+		q.AddSelect("name, age").AddFrom("users").AddWhere().AddWhereParameter("age", ">", "30").AddOrWhereParameter("name", "=", "John")
+		assert.Equal(t, "?query=select+name, age+from+users+where+age+>+'30'+or+name+=+'John'", q.GetQuery())
+		q.ResetQuery()
+	})
+
 	// Test AddFormat method
 	t.Run("Test AddFormat", func(t *testing.T) {
 		q.AddSelect("name, age").AddFrom("users").AddFormat("json")
