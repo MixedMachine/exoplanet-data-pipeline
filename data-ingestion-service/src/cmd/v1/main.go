@@ -1,9 +1,12 @@
 package main
 
 import (
+	// "time"
+
 	"github.com/mixedmachine/exoplanet-data-pipeline/data-ingestion-service/src/pkg/api"
 	"github.com/mixedmachine/exoplanet-data-pipeline/data-ingestion-service/src/pkg/database"
 
+	"github.com/nats-io/nats.go"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -36,6 +39,15 @@ func main() {
 	mongoClient := database.ConnectDB("mongodb://root:root@localhost:27017")
 	mongoCollection := database.GetCollection(mongoClient, "exoplanets", "k2pandc")
 
+	natsUri := "http://localhost:4222"
+
+	nc, err := nats.Connect(natsUri)
+	if err != nil {
+		log.Fatal(err)
+	}
+	// sub, _ := nc.SubscribeSync("exoplanets.ingest")
+
+	defer nc.Close()
 	inserted := []string{}
 	for _, planet := range *data {
 		log.Infof("Inserting: %v, %v (%v)",
@@ -46,8 +58,21 @@ func main() {
 		} else {
 			log.Info("Inserted id: ", id)
 			inserted = append(inserted, id)
+			nc.Publish("exoplanets.ingest", []byte(id))
 		}
 		log.Info("--------------------")
+
 	}
 	log.Infof("Inserted %v planets\n", len(inserted))
+
+	// for {
+	// 	msg, _ := sub.NextMsg(10 * time.Millisecond)
+	// 	if msg != nil {
+	// 		log.Info("Received: ", string(msg.Data))
+	// 	} else {
+	// 		print(".")
+	// 	}
+	// 	time.Sleep(100 * time.Millisecond)
+	// }
+
 }
