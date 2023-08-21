@@ -4,7 +4,7 @@ install:
 	poetry install
 
 run:
-	poetry run python ./src/data_processing_service/main.py
+	poetry run python -m src.data_processing_service
 
 test:
 	poetry run pytest tests/

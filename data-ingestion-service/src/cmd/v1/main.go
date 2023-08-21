@@ -10,6 +10,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	NATS_CHANNEL_INGESTED = "exoplanets.ingested"
+)
+
 func main() {
 	log.SetFormatter(&log.TextFormatter{
 		PadLevelText: true,
@@ -28,7 +32,8 @@ func main() {
 		AddSelect("*").
 		AddFrom("k2pandc").
 		AddWhere().
-		AddWhereParameter("rowupdate", ">", "2023-07-01").
+		AddWhereParameter("rowupdate", ">=", "2023-04-01").
+		AddAndWhereParameter("rowupdate", "<", "2023-05-01").
 		AddFormat("json").
 		Build()
 	data, err := client.GetExoplanets(query)
@@ -58,7 +63,7 @@ func main() {
 		} else {
 			log.Info("Inserted id: ", id)
 			inserted = append(inserted, id)
-			nc.Publish("exoplanets.ingest", []byte(id))
+			nc.Publish(NATS_CHANNEL_INGESTED, []byte(id))
 		}
 		log.Info("--------------------")
 
