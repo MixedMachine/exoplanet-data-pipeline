@@ -43,3 +43,15 @@ func InsertOne(collection *mongo.Collection, document interface{}) (string, erro
 	}
 	return res.InsertedID.(primitive.ObjectID).Hex(), nil
 }
+
+func DeleteById(collection *mongo.Collection, id string) error {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+	_, err = collection.DeleteOne(context.Background(), primitive.M{"_id": oid})
+	if err != nil {
+		return err
+	}
+	return nil
+}
