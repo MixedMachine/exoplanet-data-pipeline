@@ -1,7 +1,8 @@
 package main
 
 import (
-	// "time"
+	"encoding/json"
+	"time"
 
 	"github.com/mixedmachine/exoplanet-data-pipeline/data-ingestion-service/src/pkg/api"
 	"github.com/mixedmachine/exoplanet-data-pipeline/data-ingestion-service/src/pkg/database"
@@ -11,7 +12,9 @@ import (
 )
 
 const (
-	NATS_CHANNEL_INGESTED = "exoplanets.ingested"
+	NATS_CHANNEL_INGESTED  = "exoplanets.ingested"
+	NATS_CHANNEL_PROCESSED = "exoplanets.processed"
+	COMPLETE               = "complete"
 )
 
 func main() {
@@ -32,8 +35,8 @@ func main() {
 		AddSelect("*").
 		AddFrom("k2pandc").
 		AddWhere().
-		AddWhereParameter("rowupdate", ">=", "2023-04-01").
-		AddAndWhereParameter("rowupdate", "<", "2023-05-01").
+		AddWhereParameter("rowupdate", ">=", "2023-06-01").
+		AddAndWhereParameter("rowupdate", "<", "2023-07-01").
 		AddFormat("json").
 		Build()
 	data, err := client.GetExoplanets(query)
@@ -50,7 +53,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	// sub, _ := nc.SubscribeSync("exoplanets.ingest")
+	sub, _ := nc.SubscribeSync(NATS_CHANNEL_PROCESSED)
 
 	defer nc.Close()
 	inserted := []string{}
@@ -70,14 +73,24 @@ func main() {
 	}
 	log.Infof("Inserted %v planets\n", len(inserted))
 
-	// for {
-	// 	msg, _ := sub.NextMsg(10 * time.Millisecond)
-	// 	if msg != nil {
-	// 		log.Info("Received: ", string(msg.Data))
-	// 	} else {
-	// 		print(".")
-	// 	}
-	// 	time.Sleep(100 * time.Millisecond)
-	// }
+	for {
+		msg, _ := sub.NextMsg(10 * time.Millisecond)
+		if msg != nil {
+			log.Info("Received from ", msg.Subject)
+			msgData := map[string]string{}
+			json.Unmarshal(msg.Data, &msgData)
+			log.Info(msgData)
+			if msgData["_id"] != "" { //&& msgData["status"] == COMPLETE {
+				log.Info("Deleting ", msgData["_id"], "...")
+				err := database.DeleteById(mongoCollection, msgData["_id"])
+				if err != nil {
+					log.Warn(err)
+				}
+			}
+		} else {
+			print("...\r")
+		}
+		time.Sleep(1000 * time.Millisecond)
+	}
 
 }
