@@ -13,6 +13,9 @@ import (
 const (
 	// eventual refactor: put in env var
 	EXOPLANET_ARCHIVE_BASE_URL = "https://exoplanetarchive.ipac.caltech.edu/TAP/sync"
+	SELECT                     = "*"
+	EXOPLANET_ARCHIVE_FROM     = "k2pandc"
+	ROW_UPDATE_FIELD           = "rowupdate"
 )
 
 type ExoplanetArchive struct {
@@ -64,8 +67,6 @@ func (e *ExoplanetArchive) GetExoplanets(query string) (*[]map[string]any, error
 		return nil, err
 	}
 
-	// println(string(body))
-
 	err = decodeJSON(body, data)
 	if err != nil {
 		log.Errorf("Error decoding JSON: %v", err)
@@ -73,4 +74,15 @@ func (e *ExoplanetArchive) GetExoplanets(query string) (*[]map[string]any, error
 	}
 
 	return data, nil
+}
+
+func BuildQueryBetween(startDate, endDate string) string {
+	return NewQueryBuilder().
+		AddSelect(SELECT).
+		AddFrom(EXOPLANET_ARCHIVE_FROM).
+		AddWhere().
+		AddWhereParameter(ROW_UPDATE_FIELD, ">", startDate).
+		AddAndWhereParameter(ROW_UPDATE_FIELD, "<=", endDate).
+		AddFormat("json").
+		Build()
 }

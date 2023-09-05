@@ -1,96 +1,99 @@
 package main
 
 import (
-	"encoding/json"
+	"os"
 	"time"
 
+	"github.com/mixedmachine/exoplanet-data-pipeline/data-ingestion-service/src/internal/operations"
 	"github.com/mixedmachine/exoplanet-data-pipeline/data-ingestion-service/src/pkg/api"
 	"github.com/mixedmachine/exoplanet-data-pipeline/data-ingestion-service/src/pkg/database"
+	"github.com/mixedmachine/exoplanet-data-pipeline/data-ingestion-service/src/pkg/messaging"
 
-	"github.com/nats-io/nats.go"
 	log "github.com/sirupsen/logrus"
 )
 
 const (
+	MONGO_URI              = "mongodb://root:root@localhost:27017"
+	MONGO_DB               = "exoplanets"
+	MONGO_COLLECTION       = api.EXOPLANET_ARCHIVE_FROM
+	NATS_URI               = "http://localhost:4222"
 	NATS_CHANNEL_INGESTED  = "exoplanets.ingested"
 	NATS_CHANNEL_PROCESSED = "exoplanets.processed"
 	COMPLETE               = "complete"
+	LOG_FILE_KEY		   = "LOG_FILE"
+	LOG_LEVEL_KEY		  = "LOG_LEVEL"
+	DEBUG				   = "DEBUG"
+	INFO				   = "INFO"
+	WARN				   = "WARN"
+	ERROR				   = "ERROR"
+)
+
+var (
+	startDate = "2023-06-01"
+	throughDate   = "2023-08-30"
+	sleepTime = 500 * time.Millisecond
 )
 
 func main() {
-	log.SetFormatter(&log.TextFormatter{
-		PadLevelText: true,
-	})
-
-	// TODO: Add log level as a flag
-	// log.SetLevel(log.DebugLevel)
-	// TODO: Add log file as a flag
-	// log.SetReportCaller(true)
+	initializeLogger()
 
 	log.Info("Starting data ingestion service...")
 
-	// TODO: break out into separate functions (e.g. api, database, messaging)
 	client := api.NewExoplanetArchive()
-	query := api.NewQueryBuilder().
-		AddSelect("*").
-		AddFrom("k2pandc").
-		AddWhere().
-		AddWhereParameter("rowupdate", ">=", "2023-06-01").
-		AddAndWhereParameter("rowupdate", "<", "2023-07-01").
-		AddFormat("json").
-		Build()
+	query := api.BuildQueryBetween(startDate, throughDate)
 	data, err := client.GetExoplanets(query)
 	if err != nil {
-		panic(err)
+		log.Error(err)
 	}
 
-	mongoClient := database.ConnectDB("mongodb://root:root@localhost:27017")
-	mongoCollection := database.GetCollection(mongoClient, "exoplanets", "k2pandc")
+	mongoManager := database.NewDatabaseManager(MONGO_URI, MONGO_DB, MONGO_COLLECTION)
 
-	natsUri := "http://localhost:4222"
+	natsManager := messaging.NewNatsManager(NATS_URI)
 
-	nc, err := nats.Connect(natsUri)
-	if err != nil {
-		log.Fatal(err)
-	}
-	sub, _ := nc.SubscribeSync(NATS_CHANNEL_PROCESSED)
+	sub := natsManager.Subscribe(NATS_CHANNEL_PROCESSED)
+	defer natsManager.Close()
 
-	defer nc.Close()
-	inserted := []string{}
-	for _, planet := range *data {
-		log.Infof("Inserting: %v, %v (%v)",
-			planet["pl_name"], planet["hostname"], planet["disc_year"])
-		id, err := database.InsertOne(mongoCollection, planet)
-		if err != nil {
-			log.Warn(err)
-		} else {
-			log.Info("Inserted id: ", id)
-			inserted = append(inserted, id)
-			nc.Publish(NATS_CHANNEL_INGESTED, []byte(id))
-		}
-		log.Info("--------------------")
-
-	}
-	log.Infof("Inserted %v planets\n", len(inserted))
+	operations.SavePlanets(mongoManager.GetCollection(), natsManager.GetClient(), *data)
 
 	for {
-		msg, _ := sub.NextMsg(10 * time.Millisecond)
-		if msg != nil {
-			log.Info("Received from ", msg.Subject)
-			msgData := map[string]string{}
-			json.Unmarshal(msg.Data, &msgData)
-			log.Info(msgData)
-			if msgData["_id"] != "" { //&& msgData["status"] == COMPLETE {
-				log.Info("Deleting ", msgData["_id"], "...")
-				err := database.DeleteById(mongoCollection, msgData["_id"])
-				if err != nil {
-					log.Warn(err)
-				}
-			}
-		} else {
-			print("...\r")
-		}
-		time.Sleep(1000 * time.Millisecond)
+		operations.CleanUpPlanets(mongoManager.GetCollection(), sub)
+		time.Sleep(sleepTime)
 	}
 
+}
+
+func GetEnv(key, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
+	return fallback
+}
+
+func initializeLogger() {
+	log.SetFormatter(&log.TextFormatter{
+		PadLevelText: true,
+	})
+	logLevel := GetEnv(LOG_LEVEL_KEY, INFO)
+	switch logLevel {
+	case DEBUG:
+		log.SetLevel(log.DebugLevel)
+	case INFO:
+		log.SetLevel(log.InfoLevel)
+	case WARN:
+		log.SetLevel(log.WarnLevel)
+	case ERROR:
+		log.SetLevel(log.ErrorLevel)
+	default:
+		log.SetLevel(log.DebugLevel)
+	}
+
+	logFile := GetEnv(LOG_FILE_KEY, "")
+	if logFile != "" {
+		file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		if err == nil {
+			log.SetOutput(file)
+		} else {
+			log.Info("Failed to log to file, using default stderr")
+		}
+	}
 }

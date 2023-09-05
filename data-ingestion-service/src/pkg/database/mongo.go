@@ -10,6 +10,33 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+type DatabaseManager struct {
+	client     *mongo.Client
+	collection *mongo.Collection
+}
+
+func NewDatabaseManager(uri, databaseName, collectionName string) *DatabaseManager {
+	client := ConnectDB(uri)
+	collection := newCollection(client, databaseName, collectionName)
+	return &DatabaseManager{client, collection}
+}
+
+func (dbm *DatabaseManager) Close() {
+	dbm.client.Disconnect(context.Background())
+}
+
+func (dbm *DatabaseManager) GetClient() *mongo.Client {
+	return dbm.client
+}
+
+func (dbm *DatabaseManager) GetCollection() *mongo.Collection {
+	return dbm.collection
+}
+
+func (dbm *DatabaseManager) SetCollection(databaseName, collectionName string) {
+	dbm.collection = newCollection(dbm.client, databaseName, collectionName)
+}
+
 // ConnectDB connects to the database
 func ConnectDB(uri string) *mongo.Client {
 	clientOptions := options.Client().ApplyURI(uri)
@@ -21,7 +48,7 @@ func ConnectDB(uri string) *mongo.Client {
 }
 
 // GetCollection returns a collection from the database
-func GetCollection(client *mongo.Client, databaseName, collectionName string) *mongo.Collection {
+func newCollection(client *mongo.Client, databaseName, collectionName string) *mongo.Collection {
 	collection := client.
 		Database(databaseName).
 		Collection(collectionName)
