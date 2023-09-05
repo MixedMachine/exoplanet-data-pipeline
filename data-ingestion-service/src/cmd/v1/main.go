@@ -20,18 +20,18 @@ const (
 	NATS_CHANNEL_INGESTED  = "exoplanets.ingested"
 	NATS_CHANNEL_PROCESSED = "exoplanets.processed"
 	COMPLETE               = "complete"
-	LOG_FILE_KEY		   = "LOG_FILE"
-	LOG_LEVEL_KEY		  = "LOG_LEVEL"
-	DEBUG				   = "DEBUG"
-	INFO				   = "INFO"
-	WARN				   = "WARN"
-	ERROR				   = "ERROR"
+	LOG_FILE_KEY           = "LOG_FILE"
+	LOG_LEVEL_KEY          = "LOG_LEVEL"
+	DEBUG                  = "DEBUG"
+	INFO                   = "INFO"
+	WARN                   = "WARN"
+	ERROR                  = "ERROR"
 )
 
 var (
-	startDate = "2023-06-01"
-	throughDate   = "2023-08-30"
-	sleepTime = 500 * time.Millisecond
+	startDate   = "2023-06-01"
+	throughDate = "2023-08-30"
+	sleepTime   = 500 * time.Millisecond
 )
 
 func main() {

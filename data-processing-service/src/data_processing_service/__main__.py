@@ -178,7 +178,7 @@ async def main():
 
     while True:
         await asyncio.sleep(1)
-        print("waiting for messages...", flush=True, end="\r")
+        print("...", flush=True, end="\r")
 
 
 if __name__ == "__main__":
