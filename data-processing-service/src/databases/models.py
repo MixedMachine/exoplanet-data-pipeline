@@ -42,3 +42,19 @@ class Exoplanet:
         self.planet_last_updated = planet_last_updated
         self.created_at = created_at
         self.last_updated = last_updated
+
+    def to_dict(self):
+        return {
+            'id': self._id,
+            'name': self.name,
+            'mass': self.mass,
+            'radius': self.radius,
+            'period': self.period,
+            'distance': self.distance,
+            'year_discovered': self.year_discovered,
+            'method': self.method,
+            'confirmed': self.confirmed,
+            'planet_last_updated': self.planet_last_updated,
+            'created_at': self.created_at.strftime("%Y-%m-%d"),
+            'last_updated': self.last_updated.strftime("%Y-%m-%d")
+        }

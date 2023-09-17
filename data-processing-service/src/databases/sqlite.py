@@ -21,3 +21,13 @@ CREATE TABLE IF NOT EXISTS exoplanets (
 """)
 
 sqlite_client.commit()
+
+
+def insert_into_table(table_name: str, **kwargs):
+    field_names = ", ".join(kwargs.keys())
+    placeholders = ", ".join(["?" for _ in kwargs])
+    query = f"INSERT INTO {table_name} ({field_names}) VALUES ({placeholders});"
+    values = tuple(kwargs.values())
+    
+    sqlite_cursor.execute(query, values)
+    sqlite_client.commit()
